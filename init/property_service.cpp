@@ -811,6 +811,19 @@ static const char *snet_prop_value[] = {
 	NULL
 };
 
+#ifdef TARGET_FORCE_BUILD_FINGERPRINT
+static const char *build_fingerprint_key[] = {
+    "ro.build.fingerprint",
+	"ro.system_ext.build.fingerprint",
+	"ro.vendor.build.fingerprint",
+	"ro.bootimage.build.fingerprint",
+	"ro.odm.build.fingerprint",
+	"ro.product.build.fingerprint",
+	"ro.system.build.fingerprint",
+	NULL
+};
+#endif
+
 static void workaround_snet_properties() {
 	std::string error;
 	LOG(INFO) << "snet: Hiding sensitive props";
@@ -819,6 +832,15 @@ static void workaround_snet_properties() {
 	for (int i = 0; snet_prop_key[i]; ++i) {
 		PropertySet(snet_prop_key[i], snet_prop_value[i], &error);
 	}
+
+    #ifdef TARGET_FORCE_BUILD_FINGERPRINT
+        for (int i = 0; build_fingerprint_key[i]; ++i) {
+            PropertySet(build_fingerprint_key[i], TARGET_FORCE_BUILD_FINGERPRINT, &error);
+        }
+    #endif
+
+    // Restore the normal property override security after safetynet props have been set
+    weaken_prop_override_security = false;
 }
 
 // If the ro.product.[brand|device|manufacturer|model|name] properties have not been explicitly
@@ -890,6 +912,7 @@ static void property_initialize_ro_product_props() {
     }
 }
 
+#ifndef TARGET_FORCE_BUILD_FINGERPRINT
 // If the ro.build.fingerprint property has not been set, derive it from constituent pieces
 static void property_derive_build_fingerprint() {
     std::string build_fingerprint = GetProperty("ro.build.fingerprint", "");
@@ -923,6 +946,7 @@ static void property_derive_build_fingerprint() {
                    << ")";
     }
 }
+#endif
 
 void PropertyLoadBootDefaults() {
     // TODO(b/117892318): merge prop.default and build.prop files into one
@@ -970,7 +994,10 @@ void PropertyLoadBootDefaults() {
     vendor_load_properties();
 
     property_initialize_ro_product_props();
+
+#ifndef TARGET_FORCE_BUILD_FINGERPRINT
     property_derive_build_fingerprint();
+#endif
 
     // Workaround SafetyNet
     workaround_snet_properties();
