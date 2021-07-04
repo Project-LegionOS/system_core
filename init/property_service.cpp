@@ -1000,7 +1000,9 @@ void PropertyLoadBootDefaults() {
 #endif
 
     // Workaround SafetyNet
-    workaround_snet_properties();
+    if (!IsRecoveryMode()) {
+        workaround_snet_properties();
+    }
 
     // Restore the normal property override security after init extension is executed
     weaken_prop_override_security = false;
